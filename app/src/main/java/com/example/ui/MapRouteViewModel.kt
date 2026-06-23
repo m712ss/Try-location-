@@ -55,6 +55,14 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
     private val database = AppDatabase.getDatabase(application)
     private val repository = MapRouteRepository(database.dao())
 
+    // Simulated Offline Mode state (persisted computed routes accessibility)
+    private val _isOfflineMode = MutableStateFlow(false)
+    val isOfflineMode: StateFlow<Boolean> = _isOfflineMode.asStateFlow()
+
+    fun toggleOfflineMode() {
+        _isOfflineMode.value = !_isOfflineMode.value
+    }
+
     // All pins and saved routes from SQLite
     val allPins: StateFlow<List<SavedPin>> = repository.allPins
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -138,6 +146,13 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
 
     private val _routeErrorMessage = MutableStateFlow<String?>(null)
     val routeErrorMessage: StateFlow<String?> = _routeErrorMessage.asStateFlow()
+
+    private val _selectedCategoryFilter = MutableStateFlow("الكل")
+    val selectedCategoryFilter: StateFlow<String> = _selectedCategoryFilter.asStateFlow()
+
+    fun setCategoryFilter(category: String) {
+        _selectedCategoryFilter.value = category
+    }
 
     private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
@@ -242,6 +257,10 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
 
         viewModelScope.launch {
             try {
+                if (_isOfflineMode.value) {
+                    throw IllegalStateException("أنت تعمل حالياً في وضع عدم الاتصال بالإنترنت (أوفلاين) 📴. لاستخراج المواقع وتصنيفها بالذكاء الاصطناعي، يرجى العودة للوضع المتصل من أعلى الشاشة.")
+                }
+
                 val apiKey = BuildConfig.GEMINI_API_KEY
                 if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
                     throw IllegalStateException("مفتاح واجهة برمجة التطبيقات لـ Gemini غير متوفر. الرجاء إعداده عبر لوحة الأسرار في AI Studio.")
@@ -252,7 +271,7 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
                     المستخدم قد يرسل أسماء مواقع، روابط خرائط جوجل (مثل goo.gl أو maps.app.goo.gl)، أو نصوصاً مختلطة.
                     قم بتحليل النص واستخراج قائمة بالمواقع. لكل موقع، حدد المعطيات التالية بدقة:
                     - الاسم (name): اسم الموقع باللغة العربية.
-                    - التصنيف (category): يجب أن يكون أحد التصنيفات التالية بدقة: "طعام وشراب", "تسوق", "ترفيه", "سياحة", "إقامة", "أخرى".
+                    - التصنيف (category): يجب أن يكون أحد التصنيفات التالية بدقة: "عمل", "طعام وشراب", "تسوق", "ترفيه", "سياحة", "إقامة", "أخرى".
                     - الوصف (description): وصف موجز ومفيد باللغة العربية (ما هو المكان وسبب زيارته في سطر واحد).
                     - خط العرض (latitude) وخط الطول (longitude): إحداثيات الموقع الحقيقية في السعودية. إذا كان المكان معروفاً جداً مثل (برج المملكة، حديقة السلام، مطعم البيك)، قم بتوفير إحداثياته الحقيقية في الرياض أو جدة أو مكة إلخ بدقة. إذا لم يكن المكان معروفاً، خمن موقعه في الرياض (مثلاً حول خط العرض 24.7136 وخط الطول 46.6753) مع تغيير بسيط لتوزيعه على خريطة تفاعلية (مثلاً إضافة أو طرح 0.01 إلى 0.05 عشوائياً للانتشار الجيد).
                     
@@ -695,6 +714,16 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
         _isChatLoading.value = true
 
         viewModelScope.launch {
+            if (_isOfflineMode.value) {
+                kotlinx.coroutines.delay(600) // Small simulation delay
+                _chatMessages.value = _chatMessages.value + ChatMessage(
+                    text = "أنا غير قادر على الاتصال بخادم المساعد الذكي بالذكاء الاصطناعي حالياً لأنك قمت بتشغيل 'وضع عدم الاتصال بالإنترنت' (أوفلاين) 📴.\n\nلكن الخبر السار! 💫 يمكنك الاستمرار في تخطيط مساراتك، تحسينها وموازنة الأوقات محلياً بنسبة 100٪، بالإضافة إلى تصفح وحفظ دبابيسك ومساراتك المفضلة، حيث يعمل التطبيق بالكامل بالاعتماد على التخزين المحلي والذكاء المحلي المدمج للتحسين الجغرافي!",
+                    isUser = false
+                )
+                _isChatLoading.value = false
+                return@launch
+            }
+
             try {
                 val apiKey = BuildConfig.GEMINI_API_KEY
                 if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
@@ -711,7 +740,7 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
 
                 val systemPrompt = """
                     أنت خبير كلي ومعلم خرائط ومسارات ذكي وتتحدث العربية الفصحى الجميلة والودودة.
-                    تساعد المستخدمين في إيجاد أفضل الطرق، وتصنيف الأماكن (طعام وشراب، تسوق، ترفيه، سياحة، إقامة، أخرى)، وتخطيط جداولهم اليومية لزيارة المواقع بكفاءة وتوفير الوقت والجهد وعرض الأوقات المقدرة للوصول.
+                    تساعد المستخدمين في إيجاد أفضل الطرق، وتصنيف الأماكن (عمل، طعام وشراب، تسوق، ترفيه، سياحة، إقامة، أخرى)، وتخطيط جداولهم اليومية لزيارة المواقع بكفاءة وتوفير الوقت والجهد وعرض الأوقات المقدرة للوصول.
                     عند تصنيف أماكن أو تحسين مسارات، قم بذكر أسماء الأماكن بوضوح واشرح سبب الترتيب (الترتيب قائم على اختصار المسافة الجغرافية).
                     يمكنك استخدام الرموز التعبيرية لإعطاء جمالية لحديثك.
                 """.trimIndent()

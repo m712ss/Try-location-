@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -47,9 +48,10 @@ fun getCategoryColor(category: String): Color {
         "ترفيه" -> Color(0xFFEC4899) // Pink
         "سياحة" -> Color(0xFF10B981) // Green-Emerald
         "إقامة" -> Color(0xFF3B82F6) // Blue
+        "عمل" -> Color(0xFF6366F1) // Indigo/Work
         "انطلاق" -> Color(0xFF8B5CF6) // Violet
         "نهاية" -> Color(0xFF06B6D4) // Cyan
-        else -> Color(0xFF6B7280) // Gray
+        else -> Color(0xFF94A3B8) // Slate Gray
     }
 }
 
@@ -60,6 +62,7 @@ fun getCategoryIcon(category: String): ImageVector {
         "ترفيه" -> Icons.Default.Celebration
         "سياحة" -> Icons.Default.CameraAlt
         "إقامة" -> Icons.Default.Hotel
+        "عمل" -> Icons.Default.Work
         "انطلاق" -> Icons.Default.PlayArrow
         "نهاية" -> Icons.Default.Flag
         else -> Icons.Default.Place
@@ -77,13 +80,18 @@ fun MapScreen(
     val selectedPin by viewModel.selectedPin.collectAsState()
     val mapCenter by viewModel.mapCenter.collectAsState()
     val mapZoom by viewModel.mapZoom.collectAsState()
+    val categoryFilter by viewModel.selectedCategoryFilter.collectAsState()
+
+    val filteredPins = remember(pins, categoryFilter) {
+        if (categoryFilter == "الكل") pins else pins.filter { it.category == categoryFilter }
+    }
 
     var showAddPinDialog by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         // 1. Map Canvas Renderer
         InteractiveMapCanvas(
-            pins = pins,
+            pins = filteredPins,
             activeRoute = activeRoute,
             center = mapCenter,
             zoom = mapZoom,
@@ -128,38 +136,104 @@ fun MapScreen(
             }
         }
 
-        // Quick Category Legend indicator overlay
+        // Interactive Category Filter & Legend panel
         Card(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
-                .shadow(4.dp, shape = RoundedCornerShape(20.dp)),
+                .width(175.dp)
+                .shadow(6.dp, shape = RoundedCornerShape(20.dp)),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
             shape = RoundedCornerShape(20.dp)
         ) {
             Column(
                 modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Text(
-                    text = "دليل التصنيفات",
-                    style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                listOf("طعام وشراب", "تسوق", "ترفيه", "سياحة", "إقامة", "أخرى").forEach { cat ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(bottom = 2.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "تصفية",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "فلترة وتصنيف المواقع",
+                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(bottom = 2.dp))
+
+                val filterCategories = listOf("الكل") + listOf("عمل", "تسوق", "ترفيه", "طعام وشراب", "سياحة", "إقامة", "أخرى")
+                filterCategories.forEach { cat ->
+                    val isSelectedFilter = categoryFilter == cat
+                    val count = if (cat == "الكل") pins.size else pins.count { it.category == cat }
+                    
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isSelectedFilter) MaterialTheme.colorScheme.primaryContainer 
+                                else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .clickable { viewModel.setCategoryFilter(cat) }
+                            .padding(horizontal = 8.dp, vertical = 5.dp)
                     ) {
-                        Box(
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (cat == "الكل") {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .background(getCategoryColor(cat), CircleShape)
+                                )
+                            }
+                            Text(
+                                text = cat, 
+                                style = TextStyle(
+                                    fontSize = 11.sp, 
+                                    fontWeight = if (isSelectedFilter) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelectedFilter) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
+                        
+                        Text(
+                            text = "$count",
+                            style = TextStyle(
+                                fontSize = 10.sp, 
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelectedFilter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            ),
                             modifier = Modifier
-                                .size(10.dp)
-                                .background(getCategoryColor(cat), CircleShape)
+                                .background(
+                                    if (isSelectedFilter) MaterialTheme.colorScheme.surface.copy(alpha = 0.8f) 
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
-                        Text(text = cat, style = TextStyle(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -204,6 +278,12 @@ fun InteractiveMapCanvas(
 ) {
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current.density
+
+    val categoriesList = listOf("طعام وشراب", "تسوق", "ترفيه", "سياحة", "إقامة", "عمل", "انطلاق", "نهاية", "أخرى")
+    val categoryPainters = categoriesList.associateWith { cat ->
+        androidx.compose.ui.graphics.vector.rememberVectorPainter(image = getCategoryIcon(cat))
+    }
+    val defaultPainter = androidx.compose.ui.graphics.vector.rememberVectorPainter(image = Icons.Default.Place)
 
     // Map background coordinates mapping helpers
     fun getScreenPos(lat: Double, lng: Double, width: Float, height: Float): Offset {
@@ -344,41 +424,56 @@ fun InteractiveMapCanvas(
             val pos = getScreenPos(pin.latitude, pin.longitude, w, h)
             val isSelected = pin.id == selectedPin?.id
             val pinColor = getCategoryColor(pin.category)
+            val badgeRadius = if (isSelected) 14f * density else 11f * density
 
             // Outer pulse circle if selected to create locator dynamic alert effect
             if (isSelected) {
                 drawCircle(
-                    color = pinColor.copy(alpha = 0.3f),
-                    radius = 26f * density,
+                    color = pinColor.copy(alpha = 0.25f),
+                    radius = 28f * density,
                     center = pos
                 )
                 drawCircle(
-                    color = pinColor.copy(alpha = 0.6f),
-                    radius = 18f * density,
+                    color = pinColor.copy(alpha = 0.5f),
+                    radius = 19f * density,
                     center = pos,
                     style = Stroke(width = 2f * density)
                 )
             }
 
-            // Normal pin concentric circle outline
+            // Draw shadow/glow effect of the pin
             drawCircle(
-                color = Color.White,
-                radius = 10f * density,
-                center = pos
+                color = Color.Black.copy(alpha = 0.35f),
+                radius = badgeRadius + 2f * density,
+                center = pos + Offset(0f, 1f * density)
             )
 
+            // Pin background circle matching category color
             drawCircle(
                 color = pinColor,
-                radius = 8f * density,
+                radius = badgeRadius,
                 center = pos
             )
 
-            // Inner center dot
+            // Dynamic white border for high readability/contrast
             drawCircle(
                 color = Color.White,
-                radius = 3f * density,
-                center = pos
+                radius = badgeRadius,
+                center = pos,
+                style = Stroke(width = 1.5f * density)
             )
+
+            // Draw the actual category icon vector inside the pin center!
+            val iconSize = if (isSelected) 15f * density else 12f * density
+            translate(left = pos.x - iconSize / 2f, top = pos.y - iconSize / 2f) {
+                val painter = categoryPainters[pin.category] ?: defaultPainter
+                with(painter) {
+                    draw(
+                        size = androidx.compose.ui.geometry.Size(iconSize, iconSize),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
+                    )
+                }
+            }
 
             // Draw pin names with text measurer above the pin
             val textLayoutResult = textMeasurer.measure(
@@ -393,7 +488,7 @@ fun InteractiveMapCanvas(
 
             drawText(
                 textLayoutResult = textLayoutResult,
-                topLeft = Offset(pos.x - textLayoutResult.size.width / 2f, pos.y - 25f * density)
+                topLeft = Offset(pos.x - textLayoutResult.size.width / 2f, pos.y - 28f * density)
             )
         }
     }
@@ -514,12 +609,12 @@ fun AddManualPinDialog(
     onAdd: (String, String, String?, Double, Double) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("طعام وشراب") }
+    var category by remember { mutableStateOf("عمل") }
     var desc by remember { mutableStateOf("") }
     var latStr by remember { mutableStateOf<String>(String.format(Locale.US, "%.5f", mapCenter.first)) }
     var lngStr by remember { mutableStateOf<String>(String.format(Locale.US, "%.5f", mapCenter.second)) }
 
-    val categories = listOf("طعام وشراب", "تسوق", "ترفيه", "سياحة", "إقامة", "أخرى")
+    val categories = listOf("عمل", "تسوق", "ترفيه", "طعام وشراب", "سياحة", "إقامة", "أخرى")
     var catExpanded by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {

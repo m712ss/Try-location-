@@ -4,10 +4,12 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -45,11 +47,18 @@ fun SavedRoutesScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Icon(Icons.Default.Bookmarks, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-            Text(
-                text = "المسارات المفضلة والمحفوظة",
-                style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp),
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Column {
+                Text(
+                    text = "المسارات المفضلة والمحفوظة",
+                    style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "مخزنة محلياً على جهازك ومتاحة بنسبة 100% دون اتصال بالإنترنت 💾",
+                    style = TextStyle(fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
 
         if (routes.isEmpty()) {
@@ -147,11 +156,27 @@ fun SavedRouteItem(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
-                    Text(
-                        text = route.name,
-                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = (-0.2).sp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = route.name,
+                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = (-0.2).sp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(Color(0xFF4CAF50), CircleShape)
+                            )
+                            Text(
+                                text = "متاح ومحفوظ بالكامل دون اتصال",
+                                style = TextStyle(fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
+                        }
+                    }
                 }
 
                 Row {

@@ -55,6 +55,7 @@ fun PlannerScreen(
 
     val isExtracting by viewModel.isExtracting.collectAsState()
     val extractionError by viewModel.extractionError.collectAsState()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsState()
 
     val context = LocalContext.current
 
@@ -72,6 +73,38 @@ fun PlannerScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // App offline notice indicator
+        if (isOfflineMode) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth().shadow(2.dp, shape = RoundedCornerShape(16.dp))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudOff,
+                            contentDescription = "دون اتصال بالإنترنت",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "أنت تعمل حالياً في وضع عدم الاتصال (أوفلاين) 📴. جميع مميزات التخطيط، التحسين الجغرافي وحفظ المسارات تعمل بالكامل محلياً وبسرعة فائقة دون الحاجة لشبكة الإنترنت!",
+                            style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+        }
+
         // Section 1: Extraction & Input
         item {
             Card(
@@ -87,17 +120,25 @@ fun PlannerScreen(
                     Text(
                         text = "إضافة وتصنيف المواقع تلقائياً بـ Gemini",
                         style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = (-0.2).sp),
-                        color = MaterialTheme.colorScheme.primary
+                        color = if (isOfflineMode) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "ألصق قائمة دبابيس من خرائط جوجل أو اكتب أسماء الأماكن وسنقوم باستخراجها وتصنيفها على الخريطة فوراً:",
+                        text = if (isOfflineMode) 
+                            "تتطلب ميزة استخراج وتصنيف المواقع بالذكاء الاصطناعي اتصالاً بالإنترنت. يمكنك دائماً إضافة دبابيس جديدة يدوياً والتحكم في المسارات بالكامل!"
+                            else "ألصق قائمة دبابيس من خرائط جوجل أو اكتب أسماء الأماكن وسنقوم باستخراجها وتصنيفها على الخريطة فوراً:",
                         style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = bulkInputText,
                         onValueChange = { bulkInputText = it },
-                        placeholder = { Text("مثال: مطعم البيك، كافيه وودز، https://maps.app.goo.gl/...") },
+                        placeholder = { 
+                            Text(
+                                if (isOfflineMode) "مغلق مؤقتاً في وضع أوفلاين..." 
+                                else "مثال: مطعم البيك، كافيه وودز، https://maps.app.goo.gl/..."
+                            ) 
+                        },
+                        enabled = !isOfflineMode,
                         maxLines = 4,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
