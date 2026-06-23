@@ -55,12 +55,70 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
     private val database = AppDatabase.getDatabase(application)
     private val repository = MapRouteRepository(database.dao())
 
+    // Authentication State persisted via SharedPreferences
+    private val prefs = application.getSharedPreferences("user_auth_prefs", android.content.Context.MODE_PRIVATE)
+
+    private val _isLoggedIn = MutableStateFlow(prefs.getBoolean("is_logged_in", false))
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+
+    private val _userEmail = MutableStateFlow(prefs.getString("user_email", null))
+    val userEmail: StateFlow<String?> = _userEmail.asStateFlow()
+
+    private val _userDisplayName = MutableStateFlow(prefs.getString("user_display_name", null))
+    val userDisplayName: StateFlow<String?> = _userDisplayName.asStateFlow()
+
+    private val _authMethod = MutableStateFlow(prefs.getString("auth_method", null)) // "GOOGLE" or "EMAIL"
+    val authMethod: StateFlow<String?> = _authMethod.asStateFlow()
+
+    fun loginWithGoogle(email: String, displayName: String) {
+        prefs.edit().apply {
+            putBoolean("is_logged_in", true)
+            putString("user_email", email)
+            putString("user_display_name", displayName)
+            putString("auth_method", "GOOGLE")
+            apply()
+        }
+        _isLoggedIn.value = true
+        _userEmail.value = email
+        _userDisplayName.value = displayName
+        _authMethod.value = "GOOGLE"
+    }
+
+    fun loginWithEmail(email: String, displayName: String) {
+        prefs.edit().apply {
+            putBoolean("is_logged_in", true)
+            putString("user_email", email)
+            putString("user_display_name", displayName)
+            putString("auth_method", "EMAIL")
+            apply()
+        }
+        _isLoggedIn.value = true
+        _userEmail.value = email
+        _userDisplayName.value = displayName
+        _authMethod.value = "EMAIL"
+    }
+
+    fun logoutUser() {
+        prefs.edit().clear().apply()
+        _isLoggedIn.value = false
+        _userEmail.value = null
+        _userDisplayName.value = null
+        _authMethod.value = null
+    }
+
     // Simulated Offline Mode state (persisted computed routes accessibility)
     private val _isOfflineMode = MutableStateFlow(false)
     val isOfflineMode: StateFlow<Boolean> = _isOfflineMode.asStateFlow()
 
     fun toggleOfflineMode() {
         _isOfflineMode.value = !_isOfflineMode.value
+    }
+
+    private val _showAuthScreen = MutableStateFlow(false)
+    val showAuthScreen: StateFlow<Boolean> = _showAuthScreen.asStateFlow()
+
+    fun setShowAuthScreen(show: Boolean) {
+        _showAuthScreen.value = show
     }
 
     // All pins and saved routes from SQLite

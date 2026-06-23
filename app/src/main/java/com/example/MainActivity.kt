@@ -29,6 +29,8 @@ import com.example.ui.MapScreen
 import com.example.ui.MapRouteViewModel
 import com.example.ui.PlannerScreen
 import com.example.ui.SavedRoutesScreen
+import com.example.ui.ProfileHeaderButton
+import com.example.ui.AuthDialog
 import com.example.ui.theme.MyApplicationTheme
 
 import androidx.compose.ui.draw.shadow
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    AuthDialog(viewModel = viewModel)
                 }
             }
         }
@@ -113,35 +116,42 @@ fun AppHeader(viewModel: MapRouteViewModel) {
         },
         actions = {
             Row(
-                modifier = Modifier
-                    .padding(end = 12.dp)
-                    .background(
-                        if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-                        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
-                    )
-                    .clickable { viewModel.toggleOfflineMode() }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(end = 12.dp)
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(8.dp)
                         .background(
-                            if (isOffline) MaterialTheme.colorScheme.error 
-                            else Color(0xFF4CAF50), 
-                            shape = androidx.compose.foundation.shape.CircleShape
+                            if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
                         )
-                )
-                Text(
-                    text = if (isOffline) "دون اتصال 📴" else "متصل 🌐",
-                    style = TextStyle(
-                        fontSize = 11.sp, 
-                        fontWeight = FontWeight.Bold,
-                        color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                        .clickable { viewModel.toggleOfflineMode() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                if (isOffline) MaterialTheme.colorScheme.error 
+                                else Color(0xFF4CAF50), 
+                                shape = androidx.compose.foundation.shape.CircleShape
+                            )
                     )
-                )
+                    Text(
+                        text = if (isOffline) "دون اتصال 📴" else "متصل 🌐",
+                        style = TextStyle(
+                            fontSize = 11.sp, 
+                            fontWeight = FontWeight.Bold,
+                            color = if (isOffline) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+
+                ProfileHeaderButton(viewModel = viewModel)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(

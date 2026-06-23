@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -37,6 +38,9 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.SavedPin
 import kotlin.math.sqrt
 
@@ -87,6 +91,8 @@ fun MapScreen(
     }
 
     var showAddPinDialog by remember { mutableStateOf(false) }
+    var mapStyle by remember { mutableStateOf("VECTOR") } // "VECTOR" or "SATELLITE" or "TERRAIN"
+    var showMapIntegrationsMenu by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         // 1. Map Canvas Renderer
@@ -98,6 +104,7 @@ fun MapScreen(
             selectedPin = selectedPin,
             onPinSelected = { viewModel.selectPin(it) },
             onMapDrag = { dx, dy -> viewModel.panMap(dx, dy) },
+            mapStyle = mapStyle,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -133,6 +140,15 @@ fun MapScreen(
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(Icons.Default.AddLocation, contentDescription = "إضافة دبوس")
+            }
+
+            FloatingActionButton(
+                onClick = { showMapIntegrationsMenu = true },
+                containerColor = Color(0xFF4285F4), 
+                contentColor = Color.White,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(Icons.Default.Layers, contentDescription = "طبقات وربط خرائط Google")
             }
         }
 
@@ -263,6 +279,17 @@ fun MapScreen(
             }
         )
     }
+
+    if (showMapIntegrationsMenu) {
+        GoogleMapIntegrationsDialog(
+            mapCenter = mapCenter,
+            mapZoom = mapZoom,
+            activeStyle = mapStyle,
+            onStyleChanged = { mapStyle = it },
+            onDismiss = { showMapIntegrationsMenu = false },
+            viewModel = viewModel
+        )
+    }
 }
 
 @Composable
@@ -274,6 +301,7 @@ fun InteractiveMapCanvas(
     selectedPin: SavedPin?,
     onPinSelected: (SavedPin?) -> Unit,
     onMapDrag: (Double, Double) -> Unit,
+    mapStyle: String,
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -299,9 +327,15 @@ fun InteractiveMapCanvas(
         return Offset(x, y)
     }
 
+    val mapBgColor = when (mapStyle) {
+        "SATELLITE" -> Color(0xFF030E14) // Digital Deep Space Space black-blue
+        "TERRAIN" -> Color(0xFF1C1917) // Earthy Stone Gray-Brown
+        else -> Color(0xFF0F172A) // Modern Cartographic Slate
+    }
+
     Canvas(
         modifier = modifier
-            .background(Color(0xFF0F172A)) // Cartographic night slate
+            .background(mapBgColor)
             .pointerInput(pins, center, zoom) {
                 detectTapGestures { offset ->
                     var found: SavedPin? = null
@@ -331,32 +365,94 @@ fun InteractiveMapCanvas(
         val w = size.width
         val h = size.height
 
-        // 1. Draw grid slate lines
-        val gridDist = 100f
-        val startX = (w / 2f) % gridDist
-        val startY = (h / 2) % gridDist
-
-        // Draw longitudinal and latitudinal lines
-        var gridX = startX
-        while (gridX < w) {
-            drawLine(
-                color = Color(0xFF1E293B).copy(alpha = 0.5f),
-                start = Offset(gridX, 0f),
-                end = Offset(gridX, h),
-                strokeWidth = 1f
+        // 1. Draw grid / topography styles
+        if (mapStyle == "SATELLITE") {
+            // Draw glowing concentric telemetry radar rings to simulate orbital sensor scans
+            drawCircle(
+                color = Color(0xFF0EA5E9).copy(alpha = 0.15f),
+                radius = 350f,
+                center = Offset(w / 2f, h / 2f),
+                style = Stroke(width = 1f * density)
             )
-            gridX += gridDist
-        }
-
-        var gridY = startY
-        while (gridY < h) {
-            drawLine(
-                color = Color(0xFF1E293B).copy(alpha = 0.5f),
-                start = Offset(0f, gridY),
-                end = Offset(w, gridY),
-                strokeWidth = 1f
+            drawCircle(
+                color = Color(0xFF0EA5E9).copy(alpha = 0.08f),
+                radius = 600f,
+                center = Offset(w / 2f, h / 2f),
+                style = Stroke(width = 1f * density)
             )
-            gridY += gridDist
+            // Cybernetic grid intersections
+            val gridDist = 80f
+            val startX = (w / 2f) % gridDist
+            val startY = (h / 2) % gridDist
+            var xLoc = startX
+            while (xLoc < w) {
+                var yLoc = startY
+                while (yLoc < h) {
+                    drawCircle(
+                        color = Color(0xFF38BDF8).copy(alpha = 0.15f),
+                        radius = 2f * density,
+                        center = Offset(xLoc, yLoc)
+                    )
+                    yLoc += gridDist
+                }
+                xLoc += gridDist
+            }
+        } else if (mapStyle == "TERRAIN") {
+            // Draw altitude contour waves matching standard terrain designs
+            drawCircle(
+                color = Color(0xFFF59E0B).copy(alpha = 0.06f),
+                radius = 180f,
+                center = Offset(w / 3f, h / 2.5f),
+                style = Stroke(width = 2f * density)
+            )
+            drawCircle(
+                color = Color(0xFFF59E0B).copy(alpha = 0.04f),
+                radius = 320f,
+                center = Offset(w / 3f, h / 2.5f),
+                style = Stroke(width = 1.5f * density)
+            )
+            drawCircle(
+                color = Color(0xFF10B981).copy(alpha = 0.05f),
+                radius = 250f,
+                center = Offset(w * 0.7f, h * 0.6f),
+                style = Stroke(width = 2f * density)
+            )
+            // Draw subtle topographic lines
+            var gridX = (w / 2f) % 120f
+            while (gridX < w) {
+                drawLine(
+                    color = Color(0xFF78350F).copy(alpha = 0.12f),
+                    start = Offset(gridX, 0f),
+                    end = Offset(gridX, h),
+                    strokeWidth = 1f
+                )
+                gridX += 120f
+            }
+        } else {
+            // Standard Vector dark gridlines
+            val gridDist = 100f
+            val startX = (w / 2f) % gridDist
+            val startY = (h / 2) % gridDist
+            var gridX = startX
+            while (gridX < w) {
+                drawLine(
+                    color = Color(0xFF1E293B).copy(alpha = 0.5f),
+                    start = Offset(gridX, 0f),
+                    end = Offset(gridX, h),
+                    strokeWidth = 1f
+                )
+                gridX += gridDist
+            }
+            var gridY = startY
+            while (gridY < h) {
+                drawLine(
+                    color = Color(0xFF1E293B).copy(alpha = 0.5f),
+                    start = Offset(0f, gridY),
+                    end = Offset(w, gridY),
+                    strokeWidth = 1f
+                )
+                gridY += gridDist
+            }
         }
 
         // Draw beautiful coordinate origin concentric rings in center
@@ -585,7 +681,7 @@ fun AnimatedSelectedPinDetail(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TextButton(
@@ -594,7 +690,33 @@ fun AnimatedSelectedPinDetail(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("حذف الدبوس")
+                    Text("حذف")
+                }
+
+                val context = LocalContext.current
+                Button(
+                    onClick = {
+                        val uri = "geo:${selectedPin.latitude},${selectedPin.longitude}?q=${selectedPin.latitude},${selectedPin.longitude}(${Uri.encode(selectedPin.name)})"
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
+                            setPackage("com.google.android.apps.maps")
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            val webUri = "https://www.google.com/maps/search/?api=1&query=${selectedPin.latitude},${selectedPin.longitude}"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webUri)))
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10B981), 
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("فتح في Google Maps", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
             }
         }
@@ -730,6 +852,182 @@ fun AddManualPinDialog(
                         ) {
                             Text("إضافة الدبوس")
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GoogleMapIntegrationsDialog(
+    mapCenter: Pair<Double, Double>,
+    mapZoom: Float,
+    activeStyle: String,
+    onStyleChanged: (String) -> Unit,
+    onDismiss: () -> Unit,
+    viewModel: MapRouteViewModel
+) {
+    val context = LocalContext.current
+    val pins by viewModel.allPins.collectAsState()
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .shadow(12.dp, shape = RoundedCornerShape(24.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header with colorful indicator strips representing Google Colors
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "خرائط Google والطبقات التفاعلية",
+                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        }
+                    }
+                    
+                    // Cute customized Google color strip representing official Google integration
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                    ) {
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight().background(Color(0xFFEA4335)))
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight().background(Color(0xFF4285F4)))
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight().background(Color(0xFFFBBC05)))
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight().background(Color(0xFF34A853)))
+                    }
+                }
+
+                // 1. Layer styling selector
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "تصميم وخلفية المظهر الجغرافي:",
+                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            Triple("VECTOR", "مخطط حديث 🗺️", MaterialTheme.colorScheme.primaryContainer),
+                            Triple("SATELLITE", "قمر صناعي 🛰️", Color(0xFF0EA5E9).copy(alpha = 0.15f)),
+                            Triple("TERRAIN", "تضاريس 🏔️", Color(0xFFF59E0B).copy(alpha = 0.15f))
+                        ).forEach { (styleKey, styleName, colorToken) ->
+                            val isSelected = activeStyle == styleKey
+                            ElevatedFilterChip(
+                                selected = isSelected,
+                                onClick = { onStyleChanged(styleKey) },
+                                label = { Text(styleName, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.elevatedFilterChipColors(
+                                    selectedContainerColor = if (styleKey == "VECTOR") MaterialTheme.colorScheme.primary 
+                                                             else if (styleKey == "SATELLITE") Color(0xFF0284C7) 
+                                                             else Color(0xFFD97706),
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // 2. Google Maps Application Integrations
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "خيارات الربط والتوجيه النفاث:",
+                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                    )
+
+                    // Button 1: Open center coordinate in Google Maps app
+                    OutlinedButton(
+                        onClick = {
+                            val webUri = "https://www.google.com/maps/@${mapCenter.first},${mapCenter.second},${mapZoom}z"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(webUri)).apply {
+                                setPackage("com.google.android.apps.maps")
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webUri)))
+                            }
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF4285F4))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "فتح موقع الكاميرا الحالي في خرائط Google", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+
+                    // Button 2: Export active route or pins
+                    Button(
+                        onClick = {
+                            val activeSteps = viewModel.generateGoogleMapsDirectionUrl()
+                            val urlMsg = if (activeSteps.isNotEmpty()) {
+                                activeSteps
+                            } else {
+                                if (pins.isNotEmpty()) {
+                                    val origin = pins.first()
+                                    val dest = pins.last()
+                                    "https://www.google.com/maps/dir/?api=1&origin=${origin.latitude},${origin.longitude}&destination=${dest.latitude},${dest.longitude}"
+                                } else {
+                                    "https://www.google.com/maps/dir/?api=1&origin=24.7136,46.6753&destination=24.7180,46.6850"
+                                }
+                            }
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlMsg))
+                            context.startActivity(intent)
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = Icons.Default.DirectionsCar, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "تشغيل ملاحة مسار رحلتك في Google Maps", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Copy center coordinates button
+                    TextButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val clip = android.content.ClipData.newPlainText("Coordinates", "${mapCenter.first}, ${mapCenter.second}")
+                            clipboard.setPrimaryClip(clip)
+                            android.widget.Toast.makeText(context, "تم نسخ إحداثيات مركز الخريطة 📋", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "نسخ إحداثيات المركز الحالي: ${String.format(Locale.US, "%.4f, %.4f", mapCenter.first, mapCenter.second)}",
+                            fontSize = 11.sp
+                        )
                     }
                 }
             }
