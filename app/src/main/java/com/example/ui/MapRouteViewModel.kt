@@ -15,6 +15,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -281,6 +282,64 @@ class MapRouteViewModel(application: Application) : AndroidViewModel(application
             repository.insertPin(pin)
             withContext(Dispatchers.Main) {
                 _mapCenter.value = Pair(lat, lng)
+            }
+        }
+    }
+
+    fun injectSaudiTouristItinerary(cityName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.clearPins()
+            
+            val points = when (cityName) {
+                "RIYADH" -> listOf(
+                    SavedPin(name = "قصر المصمك التاريخي", category = "تاريخي", description = "قصر طيني أثري ومتحف يروي قصة توحيد المملكة العربية السعودية", latitude = 24.6312, longitude = 46.7134, timeSpentMinutes = 60),
+                    SavedPin(name = "سوق الزل التراثي", category = "تسوق", description = "أقدم أسواق الرياض التقليدية لبيع السجاد والقطع الأثرية والمشالح والعود", latitude = 24.6305, longitude = 46.7118, timeSpentMinutes = 45),
+                    SavedPin(name = "حي الطريف التاريخي بالدرعية", category = "تاريخي", description = "موقع مسجل في قائمة التراث العالمي لليونيسكو وعاصمة الدولة السعودية الأولى", latitude = 24.7351, longitude = 46.5786, timeSpentMinutes = 90),
+                    SavedPin(name = "جاكس والمركز المالي", category = "ترفيه", description = "حي جاكس للفنون المبتكرة وبجانبه ناطحات سحاب مذهلة", latitude = 24.7622, longitude = 46.6409, timeSpentMinutes = 60),
+                    SavedPin(name = "مطل حافة العالم (جبل فهرين)", category = "طبيعة", description = "مطل مرتفع يطل على صحراء واسعة ووديان ساحرة على أطراف الرياض", latitude = 24.9452, longitude = 45.9922, timeSpentMinutes = 120)
+                )
+                "JEDDAH" -> listOf(
+                    SavedPin(name = "منطقة جدة التاريخية (البلد)", category = "تاريخي", description = "تتميز بالبيوت الحجازية القديمة والتحف المعمارية الخشبية المذهلة والمتاجر التقليدية", latitude = 21.4852, longitude = 39.1865, timeSpentMinutes = 90),
+                    SavedPin(name = "نافورة الملك فهد", category = "ترفيه", description = "النافورة الأعلى من نوعها في العالم ومعلم جدة الشهير على ساحل البحر الأحمر", latitude = 21.5161, longitude = 39.1578, timeSpentMinutes = 30),
+                    SavedPin(name = "كورنيش جدة والواجهة البحرية", category = "طبيعة", description = "ممشى راقي بأرصفة بحرية ومجسمات فنية لرواد المشي وعشاق الهواء الطلق", latitude = 21.5831, longitude = 39.1098, timeSpentMinutes = 60),
+                    SavedPin(name = "مسجد الرحمة العائم", category = "تاريخي", description = "مسجد أبيض رائع عائم بني في مياه البحر الأحمر، يمنح شعوراً رائعاً بالهدوء", latitude = 21.6252, longitude = 39.1112, timeSpentMinutes = 45)
+                )
+                "ALULA" -> listOf(
+                    SavedPin(name = "موقع الحجر الأثري (مدائن صالح)", category = "تاريخي", description = "أول موقع سعودي يدرج في اليونسكو، مقابر نبطية تفوق الخيال بجمال تصميمها الجبلي", latitude = 26.7915, longitude = 37.9542, timeSpentMinutes = 120),
+                    SavedPin(name = "جبل الفيل (صخرة الفيل)", category = "طبيعة", description = "أعجوبة جيولوجية طبيعية ضخمة على شكل فيل تحيط بها رمال الصحراء الحمراء", latitude = 26.6859, longitude = 37.9931, timeSpentMinutes = 45),
+                    SavedPin(name = "البلدة القديمة بالعلا", category = "تاريخي", description = "قلعة وممرات معمارية من الطوب اللبن تم حفظها لتروي حضارة التجارة القديمة والرحالة", latitude = 26.6212, longitude = 37.9304, timeSpentMinutes = 75),
+                    SavedPin(name = "مطل حرة عويرض", category = "طبيعة", description = "أعلى نقطة تطل على وادي العلا بالكامل، لتجربة غروب شمس لا تنسى ورؤية الواحة الخضراء", latitude = 26.6272, longitude = 37.8924, timeSpentMinutes = 60)
+                )
+                "ABHA" -> listOf(
+                    SavedPin(name = "قرية رجال ألمع التراثية", category = "تاريخي", description = "قرية جبلية مبنية من الحجارة المشيدة الملونة، تحفة فنية في قلب عسير", latitude = 18.2105, longitude = 42.2743, timeSpentMinutes = 90),
+                    SavedPin(name = "منتزه السودة الخلاب", category = "طبيعة", description = "أعلى قمة جبلية في المملكة يبلغ ارتفاعها أكثر من 3000 متر وتغطيها غابات العرعر والضباب", latitude = 18.2672, longitude = 42.3681, timeSpentMinutes = 90),
+                    SavedPin(name = "سوق الثلاثاء الشعبي بالمدينة العالية", category = "تسوق", description = "سوق تراثي يعرض الأواني الفخارية التقليدية، العسل العسيري الطبيعي، والأزياء التراثية", latitude = 18.2155, longitude = 42.5028, timeSpentMinutes = 45),
+                    SavedPin(name = "حديقة أبو خيال وحبل التلفريك", category = "ترفيه", description = "مساحة خضراء خلابة تطل على عقبة ضلع، مع عربات معلقة تربطها بالجبل الأخضر", latitude = 18.2098, longitude = 42.5085, timeSpentMinutes = 60)
+                )
+                else -> emptyList()
+            }
+            
+            val insertedIds = mutableListOf<Int>()
+            points.forEach { pin ->
+                val newId = repository.insertPin(pin)
+                insertedIds.add(newId.toInt())
+            }
+
+            if (insertedIds.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    _selectedWaypointIds.value = insertedIds.toSet()
+                    _startPointType.value = "pin"
+                    _selectedStartPinId.value = insertedIds.first()
+                    _endPointType.value = "pin"
+                    _selectedEndPinId.value = insertedIds.last()
+                    _mapCenter.value = Pair(points.first().latitude, points.first().longitude)
+                }
+                
+                delay(250) // wait for Room Flow collection
+                
+                withContext(Dispatchers.Main) {
+                    optimizeRoute()
+                }
             }
         }
     }

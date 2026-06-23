@@ -7,6 +7,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -100,6 +102,73 @@ fun PlannerScreen(
                             style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
+                    }
+                }
+            }
+        }
+
+        // Curated Saudi Tourism Routes Section
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(1.dp, shape = RoundedCornerShape(24.dp))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Map,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "قوالب مسارات سياحية سعودية جاهزة 🇸🇦",
+                                style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "بنقرة واحدة، خطط لرحلة مثالية في مدينتك المفضلة مع ترتيب ذكي جغرافياً",
+                                style = TextStyle(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Horizontal list of cities
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TouristCityCard("الرياض 🗺️", "مسار وسط العاصمة التاريخي والحيوي", "RIYADH", Color(0xFFE0F2FE), Color(0xFF0369A1)) {
+                            viewModel.injectSaudiTouristItinerary("RIYADH")
+                            Toast.makeText(context, "تم تحميل مسار الرياض ذكياً 🇸🇦", Toast.LENGTH_SHORT).show()
+                        }
+                        TouristCityCard("عروس البحر 🌊", "تاريخ وعراقة جدة والبلد العتيق", "JEDDAH", Color(0xFFECFDF5), Color(0xFF047857)) {
+                            viewModel.injectSaudiTouristItinerary("JEDDAH")
+                            Toast.makeText(context, "تم تحميل مسار جدة التاريخي 🌊", Toast.LENGTH_SHORT).show()
+                        }
+                        TouristCityCard("العلا 🏜️", "عجائب الحضارة ومقابر مدائن صالح", "ALULA", Color(0xFFFFF7ED), Color(0xFFC2410C)) {
+                            viewModel.injectSaudiTouristItinerary("ALULA")
+                            Toast.makeText(context, "تم تحميل مسار العلا والأثر 🏜️", Toast.LENGTH_SHORT).show()
+                        }
+                        TouristCityCard("أبها البهية 🏔️", "مرتفعات عسير وضباب منتزه السودة", "ABHA", Color(0xFFF3E8FF), Color(0xFF7E22CE)) {
+                            viewModel.injectSaudiTouristItinerary("ABHA")
+                            Toast.makeText(context, "تم تحميل مسار أبها والتلفريك 🏔️", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
@@ -927,3 +996,40 @@ fun LocationConfigDialog(
         }
     }
 }
+
+@Composable
+fun TouristCityCard(
+    title: String,
+    description: String,
+    cityKey: String,
+    bgColor: Color,
+    textColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(180.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        border = BorderStroke(1.dp, textColor.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                color = textColor
+            )
+            Text(
+                text = description,
+                style = TextStyle(fontSize = 10.sp, lineHeight = 13.sp),
+                color = textColor.copy(alpha = 0.8f),
+                maxLines = 2
+            )
+        }
+    }
+}
+
