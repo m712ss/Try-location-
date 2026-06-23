@@ -1,0 +1,8 @@
+{
+  "name": "مخطط المسارات",
+  "description": "تطبيق ذكي لتنظيم وتصنيف دبابيس خرائط جوجل وتخطيط المسارات المثلى مع حساب الأوقات المقدرة للوصول وحفظ المسارات المفضلة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
